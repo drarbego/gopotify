@@ -8,6 +8,46 @@
 
 config_version=4
 
+_global_script_classes=[ {
+"base": "HttpRouter",
+"class": "HttpFileRouter",
+"language": "GDScript",
+"path": "res://addons/godottpd/http_file_router.gd"
+}, {
+"base": "Reference",
+"class": "HttpRequest",
+"language": "GDScript",
+"path": "res://addons/godottpd/http_request.gd"
+}, {
+"base": "Reference",
+"class": "HttpResponse",
+"language": "GDScript",
+"path": "res://addons/godottpd/http_response.gd"
+}, {
+"base": "Reference",
+"class": "HttpRouter",
+"language": "GDScript",
+"path": "res://addons/godottpd/http_router.gd"
+}, {
+"base": "Node",
+"class": "HttpServer",
+"language": "GDScript",
+"path": "res://addons/godottpd/http_server.gd"
+}, {
+"base": "HTTPRequest",
+"class": "SpotidotClient",
+"language": "GDScript",
+"path": "res://addons/SpotifyClient/client.gd"
+} ]
+_global_script_class_icons={
+"HttpFileRouter": "",
+"HttpRequest": "",
+"HttpResponse": "",
+"HttpRouter": "",
+"HttpServer": "",
+"SpotidotClient": ""
+}
+
 [application]
 
 config/name="SpotifyClientPlugin"
@@ -15,7 +55,7 @@ config/icon="res://icon.png"
 
 [editor_plugins]
 
-enabled=PoolStringArray( "res://addons/SpotifyClient/plugin.cfg" )
+enabled=PoolStringArray( "res://addons/SpotifyClient/plugin.cfg", "res://addons/godottpd/plugin.cfg" )
 
 [gui]
 

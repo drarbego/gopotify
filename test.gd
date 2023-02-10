@@ -2,10 +2,10 @@ extends Node2D
 
 
 func _on_Play_pressed():
-	$SpotifyClient.play()
+	$Spotidot.play()
 
 func _on_Pause_pressed():
-	$SpotifyClient.pause()
+	$Spotidot.pause()
 
 func _on_RefreshToken_pressed():
-	$SpotifyClient.refresh_access_token()
+	$Spotidot.request_user_authorization()
