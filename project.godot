@@ -37,7 +37,7 @@ config/icon="res://icon.png"
 
 [editor_plugins]
 
-enabled=PoolStringArray( "res://addons/SpotifyClient/plugin.cfg" )
+enabled=PoolStringArray( "res://addons/gopotify/plugin.cfg" )
 
 [gui]
 
