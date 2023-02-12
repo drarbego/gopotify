@@ -9,6 +9,21 @@
 config_version=4
 
 _global_script_classes=[ {
+"base": "Reference",
+"class": "GopotifyAuthResponse",
+"language": "GDScript",
+"path": "res://addons/gopotify/auth_response.gd"
+}, {
+"base": "Node",
+"class": "GopotifyAuthServer",
+"language": "GDScript",
+"path": "res://addons/gopotify/auth_server.gd"
+}, {
+"base": "HTTPRequest",
+"class": "GopotifyClient",
+"language": "GDScript",
+"path": "res://addons/gopotify/client.gd"
+}, {
 "base": "HttpRouter",
 "class": "HttpFileRouter",
 "language": "GDScript",
@@ -33,19 +48,16 @@ _global_script_classes=[ {
 "class": "HttpServer",
 "language": "GDScript",
 "path": "res://addons/godottpd/http_server.gd"
-}, {
-"base": "HTTPRequest",
-"class": "SpotidotClient",
-"language": "GDScript",
-"path": "res://addons/SpotifyClient/client.gd"
 } ]
 _global_script_class_icons={
+"GopotifyAuthResponse": "",
+"GopotifyAuthServer": "",
+"GopotifyClient": "",
 "HttpFileRouter": "",
 "HttpRequest": "",
 "HttpResponse": "",
 "HttpRouter": "",
-"HttpServer": "",
-"SpotidotClient": ""
+"HttpServer": ""
 }
 
 [application]
@@ -55,7 +67,7 @@ config/icon="res://icon.png"
 
 [editor_plugins]
 
-enabled=PoolStringArray( "res://addons/SpotifyClient/plugin.cfg", "res://addons/godottpd/plugin.cfg" )
+enabled=PoolStringArray( "res://addons/SpotifyClient/plugin.cfg" )
 
 [gui]
 
