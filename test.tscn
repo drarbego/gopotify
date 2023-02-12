@@ -33,8 +33,6 @@ margin_bottom = 40.0
 
 [node name="Gopotify" type="Node" parent="."]
 script = ExtResource( 1 )
-client_id = "ba782ad03fea401c97f118b2e999612c"
-client_secret = "a8feece1769940f698d7a2266eef2a64"
 redirect_uri = "http://localhost:8889/callback"
 
 [connection signal="pressed" from="Play" to="." method="_on_Play_pressed"]
