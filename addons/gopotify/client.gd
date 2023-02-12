@@ -1,5 +1,5 @@
 extends HTTPRequest
-class_name SpotidotClient
+class_name GopotifyClient
 
 const AUTH_URL := "https://accounts.spotify.com/"
 const SPOTIFY_BASE_URL := "https://api.spotify.com/v1/"
