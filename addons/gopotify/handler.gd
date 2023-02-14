@@ -19,14 +19,18 @@ var client: GopotifyClient
 func _ready():
 	self.read_credentials()
 
+	self.client = GopotifyClient.new(self.client_id, self.client_secret, self.access_token, self.refresh_token)
+	self.client.name = "client"
+	add_child(self.client)
+
+func _start_auth_server():
 	self.server = GopotifyAuthServer.new()
 	add_child(self.server)
 	self.server.connect("code_received", self, "_on_code_received")
 
-	self.client = GopotifyClient.new(self.client_id, self.client_secret, self.access_token, self.refresh_token)
-	self.client.name = "client"
-	add_child(self.client)
-	self.client.connect("update_credentials", self, "_on_update_credentials")
+func _stop_auth_server():
+	self.server.queue_free()
+	self.server = null
 
 func read_credentials():
 	var file = File.new()
@@ -46,28 +50,18 @@ func write_credentials(credentials: Dictionary):
 	file.store_string(JSON.print(credentials))
 	file.close()
 
-func _on_update_credentials(
-	_access_token: String,
-	_refresh_token: String,
-	_expires_in: int,
-	_issued_at: int
-	):
-	self.write_credentials({
-		"access_token": _access_token,
-		"refresh_token": _refresh_token,
-		"expires_in": _expires_in,
-		"issued_at": _issued_at
-	})
+func _update_credentials(json_credentials: Dictionary):
+	self.write_credentials(json_credentials)
 
-	self.access_token = _access_token
-	self.refresh_token = _refresh_token
-	self.expires_in = _expires_in
-	self.issued_at = _issued_at
+	self.access_token = json_credentials["access_token"]
+	self.refresh_token = json_credentials["refresh_token"]
+	self.expires_in = json_credentials["expires_in"]
+	self.issued_at = json_credentials["issued_at"]
 
-	self.client.access_token = self.access_token
-	self.client.refresh_token = self.refresh_token
+	self.client.set_tokens(self.access_token, self.refresh_token)
 
 func request_user_authorization():
+	self._start_auth_server()
 	self.client.request_user_authorization()
 
 func play():
@@ -79,7 +73,10 @@ func pause():
 func _on_code_received(request, response):
 	var code = request.query.get("code")
 
-	var result = yield(self.client.request_new_credentials(code, self.redirect_uri), "completed")
-	print(result)
-
-	response.send(200, "<h1>Todo chido</h1>")
+	var credentials = yield(self.client.request_new_credentials(code, self.redirect_uri), "completed")
+	if credentials:
+		self._update_credentials(credentials)
+		response.send(200, "<h1>Todo chido</h1>")
+	else:
+		response.send(500, "<h1>algo salió mal</h1>")
+	self._stop_auth_server()

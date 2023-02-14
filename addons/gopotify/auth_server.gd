@@ -23,8 +23,8 @@ class GopotifyAuthRequest:
 	var parameters: Dictionary
 	var query: Dictionary
 
-func _to_string() -> String:
-    return JSON.print({headers=self.headers, method=self.method, path=self.path, query=self.query})
+	func _to_string() -> String:
+		return JSON.print({headers=self.headers, method=self.method, path=self.path, query=self.query})
 
 
 func _ready():
@@ -61,7 +61,6 @@ func _process(_delta: float) -> void:
 
 func _handle_request(client: StreamPeer, request_string: String):
 	var request = GopotifyAuthRequest.new()
-	print(request_string)
 	for line in request_string.split("\r\n"):
 		var method_matches = _method_regex.search(line)
 		var header_matches = _header_regex.search(line)
@@ -88,9 +87,7 @@ func _perform_current_request(client: StreamPeer, request: GopotifyAuthRequest):
 	var found = false
 	var response = GopotifyAuthResponse.new()
 	response.client = client
-	print(request.path)
-	if request.method == "GET" and request.path == "callback/":
-		print(request)
+	if request.method == "GET" and request.path == "/callback":
 		emit_signal("code_received", request, response)
 	else:
 		response.send(404, "Not found")

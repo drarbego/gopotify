@@ -9,8 +9,6 @@ var client_secret := ""
 var access_token := ""
 var refresh_token := ""
 
-signal update_credentials(access_token, refresh_token, expires_in, issued_at)
-
 
 func _init(_client_id, _client_secret, _access_token, _refresh_token):
 	self.client_id = _client_id
@@ -32,15 +30,16 @@ func request_new_credentials(code, redirect_uri):
 	]
 
 	var result = yield(self.simple_request(HTTPClient.METHOD_POST, url, headers, data), "completed")
-	var json_result = JSON.parse(result[3].get_string_from_ascii()).result
-	emit_signal(
-		"update_credentials",
-		json_result["access_token"],
-		json_result["refresh_token"],
-		int(json_result["expires_in"]),
-		OS.get_unix_time()
-	)
-	return result
+	if result[1] == HTTPClient.RESPONSE_OK:
+		var json_result = JSON.parse(result[3].get_string_from_ascii()).result
+		return {
+			"access_token": json_result["access_token"],
+			"refresh_token": json_result["refresh_token"],
+			"expires_in": int(json_result["expires_in"]),
+			"issued_at": OS.get_unix_time()
+		}
+
+	return null
 
 func request_user_authorization():
 	var url = AUTH_URL + "authorize/"
@@ -95,13 +94,15 @@ func simple_request(method: int, url: String, headers: Array = [], body: String 
 
 	return yield(self, "request_completed")
 
+func set_tokens(access: String, refresh: String):
+	self.access_token = access
+	self.refresh_token = refresh
+
 func play():
 	var result = yield(self._spotify_request("me/player/play", HTTPClient.METHOD_PUT), "completed")
-	print(result)
 
 func pause():
 	var result = yield(self._spotify_request("me/player/pause", HTTPClient.METHOD_PUT), "completed")
-	print(result)
 
 func get_player_state():
 	var result = self._spotify_request("me/player", HTTPClient.METHOD_GET)
