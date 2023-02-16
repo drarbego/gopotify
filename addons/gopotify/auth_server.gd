@@ -5,7 +5,6 @@ var _method_regex: RegEx = RegEx.new()
 var _header_regex: RegEx = RegEx.new()
 
 var port: int = 8889
-var server_identifier: String = "GopotifyAuthServer"
 var bind_address: String = "*"
 
 var _clients: Array
@@ -60,6 +59,15 @@ func _process(_delta: float) -> void:
 				self._handle_request(client, request_string)
 
 func _handle_request(client: StreamPeer, request_string: String):
+	var request = self._build_request_from_string(request_string)
+	var response = GopotifyAuthResponse.new()
+	response.client = client
+	if request.method == "GET" and request.path == "/callback":
+		emit_signal("code_received", request, response)
+	else:
+		response.send(404, "Not found")
+
+func _build_request_from_string(request_string: String) -> GopotifyAuthRequest:
 	var request = GopotifyAuthRequest.new()
 	for line in request_string.split("\r\n"):
 		var method_matches = _method_regex.search(line)
@@ -81,16 +89,7 @@ func _handle_request(client: StreamPeer, request_string: String):
 			header_matches.get_string("value")
 		else:
 			request.body += line
-	self._perform_current_request(client, request)
-
-func _perform_current_request(client: StreamPeer, request: GopotifyAuthRequest):
-	var found = false
-	var response = GopotifyAuthResponse.new()
-	response.client = client
-	if request.method == "GET" and request.path == "/callback":
-		emit_signal("code_received", request, response)
-	else:
-		response.send(404, "Not found")
+	return request
 
 func _extract_query_params(query_string: String) -> Dictionary:
 	var query: Dictionary = {}
