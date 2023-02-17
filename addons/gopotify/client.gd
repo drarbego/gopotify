@@ -8,20 +8,22 @@ var client_id := ""
 var client_secret := ""
 var access_token := ""
 var refresh_token := ""
+var redirect_uri := ""
 
 
-func _init(_client_id, _client_secret, _access_token, _refresh_token):
+func _init(_client_id, _client_secret, _access_token, _refresh_token, _redirect_uri) -> void:
 	self.client_id = _client_id
 	self.client_secret = _client_secret
 	self.access_token = _access_token
 	self.refresh_token = _refresh_token
+	self.redirect_uri = _redirect_uri
 
-func request_new_credentials(code, redirect_uri):
+func request_new_credentials(code):
 	var url = AUTH_URL + "api/token/"
 	var data = self._build_query_params({
 		"grant_type": "authorization_code",
 		"code": code,
-		"redirect_uri": redirect_uri
+		"redirect_uri": self.redirect_uri
 	})
 	var headers = [
 		"Content-Type: application/x-www-form-urlencoded",
@@ -41,7 +43,7 @@ func request_new_credentials(code, redirect_uri):
 
 	return null
 
-func request_user_authorization():
+func request_user_authorization() -> void:
 	var url = AUTH_URL + "authorize/"
 	var result = yield(
 		self.simple_request(
@@ -61,10 +63,10 @@ func request_user_authorization():
 	var code_url = result[2][2].substr(10)
 	OS.shell_open(code_url)
 
-func _build_basic_authorization_header_token():
+func _build_basic_authorization_header_token() -> String:
 	return Marshalls.utf8_to_base64(client_id+":"+client_secret)
 
-func _build_query_params(params: Dictionary = {}):
+func _build_query_params(params: Dictionary = {}) -> String:
 	var param_array = PoolStringArray()
 
 	for key in params:
