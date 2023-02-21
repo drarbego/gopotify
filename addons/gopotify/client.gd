@@ -8,25 +8,11 @@ var client_id := ""
 var client_secret := ""
 var redirect_uri := ""
 
-var access_token := ""
-var refresh_token := ""
-var expires_in := 0
-var issued_at := 0
+var credentials: GopotifyCredentials = null
 
 var server: GopotifyAuthServer
 
 signal credentials_updated(credentials)
-
-class Callback:
-	var function_reference: FuncRef
-	var arguments: Array
-
-	func _init(_func_ref: FuncRef, _arguments: Array):
-		self.function_reference = _func_ref
-		self.arguments = _arguments
-
-	func exec():
-		return self.function_reference.call_funcv(self.arguments)
 
 
 class GopotifyResponse:
@@ -47,21 +33,17 @@ func _init(_client_id, _client_secret, _redirect_uri, _credentials) -> void:
 	self.client_id = _client_id
 	self.client_secret = _client_secret
 	self.redirect_uri = _redirect_uri
-	if _credentials:
-		self.access_token = _credentials.access_token
-		self.refresh_token = _credentials.refresh_token
-		self.expires_in = _credentials.expires_in
-		self.issued_at = _credentials.issued_at
+	self.credentials = _credentials
 
-func _start_auth_server(callback=null) -> void:
-	self.server = GopotifyAuthServer.new(self, callback)
+func _start_auth_server() -> void:
+	self.server = GopotifyAuthServer.new(self)
 	add_child(self.server)
 
 func _stop_auth_server() -> void:
 	self.server.queue_free()
 	self.server = null
 
-func request_new_credentials(code):
+func request_new_credentials(code) -> GopotifyCredentials:
 	var url = AUTH_URL + "api/token/"
 	var data = self._build_query_params({
 		"grant_type": "authorization_code",
@@ -77,17 +59,17 @@ func request_new_credentials(code):
 	var result = yield(self.simple_request(HTTPClient.METHOD_POST, url, headers, data), "completed")
 	if result[1] == HTTPClient.RESPONSE_OK:
 		var json_result = JSON.parse(result[3].get_string_from_ascii()).result
-		return {
-			"access_token": json_result["access_token"],
-			"refresh_token": json_result["refresh_token"],
-			"expires_in": int(json_result["expires_in"]),
-			"issued_at": OS.get_unix_time()
-		}
+		return GopotifyCredentials.new(
+			json_result["access_token"],
+			json_result["refresh_token"],
+			int(json_result["expires_in"]),
+			OS.get_unix_time()
+		)
 
 	return null
 
-func request_user_authorization(callback: Callback = null) -> void:
-	self._start_auth_server(callback)
+func request_user_authorization() -> void:
+	self._start_auth_server()
 	var url = AUTH_URL + "authorize/"
 	var result = yield(
 		self.simple_request(
@@ -107,13 +89,8 @@ func request_user_authorization(callback: Callback = null) -> void:
 	var code_url = result[2][2].substr(10)
 	OS.shell_open(code_url)
 
-func receive_credentials(credentials: GopotifyAuthServer.GopotifyCredentials) -> void:
-	# self.write_credentials(credentials)
-
-	self.access_token = credentials["access_token"]
-	self.refresh_token = credentials["refresh_token"]
-	self.expires_in = credentials["expires_in"]
-	self.issued_at = credentials["issued_at"]
+func set_credentials(credentials: GopotifyCredentials) -> void:
+	self.credentials = credentials
 
 	emit_signal("credentials_updated", credentials)
 
@@ -131,14 +108,30 @@ func _build_query_params(params: Dictionary = {}) -> String:
 	return "&".join(param_array)
 
 func _spotify_request(path: String, http_method: int, body: String = "", retries: int = 1) -> GopotifyResponse:
+	if retries < 0:
+		return null
+
 	var headers = [
-		"Authorization: Bearer " + self.access_token,
+		"Authorization: Bearer " + self.credentials.access_token,
 		"Content-Type: application/json",
 		"Content-Length: " + str(len(body))
 	]
 	var url = SPOTIFY_BASE_URL + path
-	var response = yield(self.simple_request(http_method, url, headers, body), "completed")
-	return GopotifyResponse.new(response[1], response[2], response[3])
+
+	if not self.credentials:
+		self.request_user_authorization()
+		yield(self.server, "credentials_received")
+		return self._spotify_request(path, http_method, body, retries-1)
+
+	var raw_response = yield(self.simple_request(http_method, url, headers, body), "completed")
+	var response = GopotifyResponse.new(raw_response[1], raw_response[2], raw_response[3])
+	print(response)
+	if self.credentials.is_expired() or response.status_code == 401:
+		self.request_user_authorization()
+		yield(self.server, "credentials_received")
+		return self._spotify_request(path, http_method, body, retries-1)
+
+	return response
 
 func simple_request(method: int, url: String, headers: Array = [], body: String = "", params: Dictionary = {}):
 	var query_params = "?" + self._build_query_params(params)
@@ -153,19 +146,8 @@ func simple_request(method: int, url: String, headers: Array = [], body: String 
 
 	return yield(self, "request_completed")
 
-func set_tokens(access: String, refresh: String):
-	self.access_token = access
-	self.refresh_token = refresh
-
-func play(retries=1) -> GopotifyResponse:
-	if retries < 0:
-		return null
-
-	var response = yield(self._spotify_request("me/player/play", HTTPClient.METHOD_PUT), "completed")
-	if response.status_code == 401:
-		var callback = Callback.new(funcref(self, "play"), [retries-1])
-		self.request_user_authorization(callback)
-	return response
+func play() -> GopotifyResponse:
+	return yield(self._spotify_request("me/player/play", HTTPClient.METHOD_PUT), "completed")
 
 func pause() -> GopotifyResponse:
 	return yield(self._spotify_request("me/player/pause", HTTPClient.METHOD_PUT), "completed")

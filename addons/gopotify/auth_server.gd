@@ -1,17 +1,21 @@
 extends Node
 class_name GopotifyAuthServer
 
+const AUTH_ENDPOINT = "/callback"
+
 var _method_regex: RegEx = RegEx.new()
 var _header_regex: RegEx = RegEx.new()
 
 var client
-var callback = null
 
 var port: int = 8889
 var bind_address: String = "*"
 
 var _clients: Array
 var _server: TCP_Server
+var timeout_timer: Timer
+
+signal credentials_received(credentials)
 
 
 class GopotifyAuthRequest:
@@ -26,28 +30,8 @@ class GopotifyAuthRequest:
 	func _to_string() -> String:
 		return JSON.print({headers=self.headers, method=self.method, path=self.path, query=self.query})
 
-class GopotifyCredentials:
-	var access_token: String
-	var refresh_token: String
-	var expires_in: int
-	var issued_at: int
-
-	func _init(_access_token, _refresh_token, _expires_in, _issued_at):
-		self.access_token = _access_token
-		self.refresh_token = _refresh_token
-		self.expires_in = _expires_in
-		self.issued_at = _issued_at
-
-	func is_expired() -> bool:
-		return OS.get_unix_time() > self.issued_at + self.expires_in
-
-	func _to_string() -> String:
-		return JSON.print({access_token=self.access_token, refresh_token=self.refresh_token, expires_in=self.expires_in, issued_at=self.issued_at})
-
-
-func _init(_client, _callback=null):
+func _init(_client):
 	self.client = _client
-	self.callback = _callback
 
 func _ready():
 	set_process(true)
@@ -57,12 +41,23 @@ func _ready():
 
 	self._server = TCP_Server.new()
 	var err: int = self._server.listen(self.port, self.bind_address)
+
+	self.timeout_timer = Timer.new()
+	self.timeout_timer.wait_time = 5
+	self.timeout_timer.autostart = true
+	self.timeout_timer.one_shot = true
+	add_child(self.timeout_timer)
+	self.timeout_timer.connect("timeout", self, "on_timeout")
+
 	match err:
 		22:
 			print("Could not bind to port %d, already in use" % [self.port])
 			self._server.stop()
 		_:
 			print("Server listening on http://%s:%s" % [self.bind_address, self.port])
+
+func on_timeout():
+	emit_signal("credentials_received", null)
 
 func _exit_tree() -> void:
 	for client in self._clients:
@@ -82,28 +77,22 @@ func _process(_delta: float) -> void:
 				self._handle_request(client, request_string)
 
 func _handle_request(client: StreamPeer, request_string: String):
+	var credentials = null
 	var request = self._build_request_from_string(request_string)
 	var response = GopotifyAuthResponse.new()
 	response.client = client
-	if request.method == "GET" and request.path == "/callback":
+	if request.method == "GET" and request.path == AUTH_ENDPOINT:
 		var code = request.query.get("code")
 
-		var raw_credentials = yield(self.client.request_new_credentials(code), "completed")
-		if raw_credentials:
-			var credentials = GopotifyCredentials.new(
-				raw_credentials["access_token"],
-				raw_credentials["refresh_token"],
-				raw_credentials["expires_in"],
-				raw_credentials["issued_at"]
-			)
+		credentials = yield(self.client.request_new_credentials(code), "completed")
+		if credentials:
 			response.send(200, "<h1>Todo chido</h1>")
-			self.client.receive_credentials(credentials)
-			if self.callback:
-				self.callback.exec()
+			self.client.set_credentials(credentials)
 		else:
 			response.send(500, "<h1>algo salió mal</h1>")
 	else:
 		response.send(404, "Not found")
+	emit_signal("credentials_received", credentials)
 
 func _build_request_from_string(request_string: String) -> GopotifyAuthRequest:
 	var request = GopotifyAuthRequest.new()

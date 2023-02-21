@@ -21,14 +21,14 @@ func _ready() -> void:
 	add_child(self.client)
 	self.client.connect("credentials_updated", self, "write_credentials")
 
-func read_credentials() -> GopotifyAuthServer.GopotifyCredentials:
+func read_credentials() -> GopotifyCredentials:
 	var file = File.new()
 	if file.file_exists("user://" + CREDENTIALS_FILE):
 		file.open("user://" + CREDENTIALS_FILE, File.READ)
 		var parsed = JSON.parse(file.get_as_text())
 		file.close()
 		if not parsed.error:
-			return GopotifyAuthServer.GopotifyCredentials.new(
+			return GopotifyCredentials.new(
 				parsed.result["access_token"],
 				parsed.result["refresh_token"],
 				parsed.result["expires_in"],
@@ -37,7 +37,7 @@ func read_credentials() -> GopotifyAuthServer.GopotifyCredentials:
 
 	return null
 
-func write_credentials(credentials: GopotifyAuthServer.GopotifyCredentials) -> void:
+func write_credentials(credentials: GopotifyCredentials) -> void:
 	var file = File.new()
 	file.open("user://" + CREDENTIALS_FILE, File.WRITE)
 	file.store_string(JSON.print({
@@ -52,7 +52,11 @@ func play():
 	var response = yield(self.client.play(), "completed")
 
 func pause():
-	var response = self.client.pause()
+	var response = yield(self.client.pause(), "completed")
+
+func get_player_state():
+	var response = yield(self.client.get_player_state(), "completed")
+
 
 func request_user_authorization() -> void:
 	self.client.request_user_authorization()
