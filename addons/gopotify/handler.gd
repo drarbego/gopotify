@@ -12,36 +12,30 @@ var expires_in := 0
 var issued_at := 0
 
 
-var server: GopotifyAuthServer
 var client: GopotifyClient
 
 
 func _ready() -> void:
-	self.read_credentials()
-
-	self.client = GopotifyClient.new(self.client_id, self.client_secret, self.access_token, self.refresh_token, self.redirect_uri)
+	var credentials = self.read_credentials()
+	self.client = GopotifyClient.new(self.client_id, self.client_secret, self.redirect_uri, credentials)
 	add_child(self.client)
+	self.client.connect("credentials_updated", self, "write_credentials")
 
-func _start_auth_server() -> void:
-	self.server = GopotifyAuthServer.new(self.client)
-	add_child(self.server)
-	self.server.connect("credentials_received", self, "_on_credentials_received")
-
-func _stop_auth_server() -> void:
-	self.server.queue_free()
-	self.server = null
-
-func read_credentials() -> void:
+func read_credentials() -> GopotifyAuthServer.GopotifyCredentials:
 	var file = File.new()
 	if file.file_exists("user://" + CREDENTIALS_FILE):
 		file.open("user://" + CREDENTIALS_FILE, File.READ)
 		var parsed = JSON.parse(file.get_as_text())
 		file.close()
 		if not parsed.error:
-			self.access_token = parsed.result["access_token"]
-			self.refresh_token = parsed.result["refresh_token"]
-			self.expires_in = parsed.result["expires_in"]
-			self.issued_at = parsed.result["issued_at"]
+			return GopotifyAuthServer.GopotifyCredentials.new(
+				parsed.result["access_token"],
+				parsed.result["refresh_token"],
+				parsed.result["expires_in"],
+				parsed.result["issued_at"]
+			)
+
+	return null
 
 func write_credentials(credentials: GopotifyAuthServer.GopotifyCredentials) -> void:
 	var file = File.new()
@@ -55,21 +49,10 @@ func write_credentials(credentials: GopotifyAuthServer.GopotifyCredentials) -> v
 	file.close()
 
 func play():
-	self.client.play()
+	var response = yield(self.client.play(), "completed")
 
 func pause():
-	self.client.pause()
+	var response = self.client.pause()
 
 func request_user_authorization() -> void:
-	self._start_auth_server()
 	self.client.request_user_authorization()
-
-func _on_credentials_received(credentials: GopotifyAuthServer.GopotifyCredentials) -> void:
-	self.write_credentials(credentials)
-
-	self.access_token = credentials["access_token"]
-	self.refresh_token = credentials["refresh_token"]
-	self.expires_in = credentials["expires_in"]
-	self.issued_at = credentials["issued_at"]
-
-	self._stop_auth_server()

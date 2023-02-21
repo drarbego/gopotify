@@ -4,15 +4,14 @@ class_name GopotifyAuthServer
 var _method_regex: RegEx = RegEx.new()
 var _header_regex: RegEx = RegEx.new()
 
-var client: GopotifyClient
+var client
+var callback = null
 
 var port: int = 8889
 var bind_address: String = "*"
 
 var _clients: Array
 var _server: TCP_Server
-
-signal credentials_received(credentials)
 
 
 class GopotifyAuthRequest:
@@ -39,12 +38,16 @@ class GopotifyCredentials:
 		self.expires_in = _expires_in
 		self.issued_at = _issued_at
 
+	func is_expired() -> bool:
+		return OS.get_unix_time() > self.issued_at + self.expires_in
+
 	func _to_string() -> String:
 		return JSON.print({access_token=self.access_token, refresh_token=self.refresh_token, expires_in=self.expires_in, issued_at=self.issued_at})
 
 
-func _init(_client: GopotifyClient):
+func _init(_client, _callback=null):
 	self.client = _client
+	self.callback = _callback
 
 func _ready():
 	set_process(true)
@@ -94,7 +97,9 @@ func _handle_request(client: StreamPeer, request_string: String):
 				raw_credentials["issued_at"]
 			)
 			response.send(200, "<h1>Todo chido</h1>")
-			emit_signal("credentials_received", credentials)
+			self.client.receive_credentials(credentials)
+			if self.callback:
+				self.callback.exec()
 		else:
 			response.send(500, "<h1>algo salió mal</h1>")
 	else:
