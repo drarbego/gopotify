@@ -3,6 +3,10 @@ class_name GopotifyClient
 
 const AUTH_URL := "https://accounts.spotify.com/"
 const SPOTIFY_BASE_URL := "https://api.spotify.com/v1/"
+const SCOPES = [
+	"user-modify-playback-state",
+	"user-read-playback-state"
+]
 
 var client_id := ""
 var client_secret := ""
@@ -81,7 +85,7 @@ func request_user_authorization() -> void:
 				"client_id": self.client_id,
 				"response_type": "code",
 				"redirect_uri": "http://localhost:8889/callback",
-				"scope": "user-modify-playback-state"
+				"scope": ",".join(SCOPES)
 			}
 		),
 		"completed"
