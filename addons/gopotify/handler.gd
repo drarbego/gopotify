@@ -4,7 +4,7 @@ const CREDENTIALS_FILE = "gopotify_credentials.txt"
 
 export var client_id := ""
 export var client_secret := ""
-export var redirect_uri : = ""
+export var port := 8889
 
 var access_token := ""
 var refresh_token := ""
@@ -17,7 +17,7 @@ var client: GopotifyClient
 
 func _ready() -> void:
 	var credentials = self.read_credentials()
-	self.client = GopotifyClient.new(self.client_id, self.client_secret, self.redirect_uri, credentials)
+	self.client = GopotifyClient.new(self.client_id, self.client_secret, self.port, credentials)
 	add_child(self.client)
 	self.client.connect("credentials_updated", self, "write_credentials")
 

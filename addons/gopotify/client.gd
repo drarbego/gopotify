@@ -8,11 +8,10 @@ const SCOPES = [
 	"user-read-playback-state"
 ]
 
-var client_id := ""
-var client_secret := ""
-var redirect_uri := ""
-
-var credentials: GopotifyCredentials = null
+var client_id: String
+var client_secret: String
+var port: int
+var credentials: GopotifyCredentials
 
 var server: GopotifyAuthServer
 
@@ -33,10 +32,10 @@ class GopotifyResponse:
 		return "[{0}]\n{1}".format([self.status_code, self.body.get_string_from_ascii()])
 
 
-func _init(_client_id, _client_secret, _redirect_uri, _credentials) -> void:
+func _init(_client_id, _client_secret, _port, _credentials) -> void:
 	self.client_id = _client_id
 	self.client_secret = _client_secret
-	self.redirect_uri = _redirect_uri
+	self.port = _port
 	self.credentials = _credentials
 
 func _start_auth_server() -> void:
@@ -52,7 +51,7 @@ func request_new_credentials(code) -> GopotifyCredentials:
 	var data = self._build_query_params({
 		"grant_type": "authorization_code",
 		"code": code,
-		"redirect_uri": self.redirect_uri
+		"redirect_uri": self._get_redirect_uri()
 	})
 	var headers = [
 		"Content-Type: application/x-www-form-urlencoded",
@@ -84,7 +83,7 @@ func request_user_authorization() -> void:
 			{
 				"client_id": self.client_id,
 				"response_type": "code",
-				"redirect_uri": "http://localhost:8889/callback",
+				"redirect_uri": self._get_redirect_uri(),
 				"scope": ",".join(SCOPES)
 			}
 		),
@@ -99,6 +98,9 @@ func set_credentials(credentials: GopotifyCredentials) -> void:
 	emit_signal("credentials_updated", credentials)
 
 	self._stop_auth_server()
+
+func _get_redirect_uri() -> String:
+	return "http://localhost:{port}{endpoint}".format({"port": self.port, "endpoint": GopotifyAuthServer.AUTH_ENDPOINT})
 
 func _build_basic_authorization_header_token() -> String:
 	return Marshalls.utf8_to_base64(client_id+":"+client_secret)
