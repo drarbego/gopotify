@@ -18,8 +18,6 @@ var credentials: GopotifyCredentials
 
 var server: GopotifyAuthServer
 
-signal credentials_updated(credentials)
-
 
 class GopotifyResponse:
 	var status_code: int
