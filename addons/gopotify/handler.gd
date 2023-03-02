@@ -1,6 +1,6 @@
 extends Node
 
-const CREDENTIALS_FILE = "gopotify_credentials.txt"
+const CREDENTIALS_FILE = "gopotify_credentials.json"
 
 export var client_id := ""
 export var client_secret := ""
