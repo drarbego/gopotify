@@ -46,20 +46,20 @@ func _stop_auth_server() -> void:
 	self.server.queue_free()
 	self.server = null
 
-func request_new_credentials(code) -> GopotifyCredentials:
-	var url = AUTH_URL + "api/token/"
-	var data = self._build_query_params({
+func request_new_credentials(code) -> bool:
+	var url := AUTH_URL + "api/token/"
+	var data := self._build_query_params({
 		"grant_type": "authorization_code",
 		"code": code,
 		"redirect_uri": self._get_redirect_uri()
 	})
-	var headers = [
+	var headers := [
 		"Content-Type: application/x-www-form-urlencoded",
 		"Authorization: Basic " + self._build_basic_authorization_header_token(),
 		"Content-Length: " + str(len(data))
 	]
 
-	var result = yield(self.simple_request(HTTPClient.METHOD_POST, url, headers, data), "completed")
+	var result: Array = yield(self.simple_request(HTTPClient.METHOD_POST, url, headers, data), "completed")
 	if result[1] == HTTPClient.RESPONSE_OK:
 		var json_result = JSON.parse(result[3].get_string_from_ascii()).result
 		var credentials = GopotifyCredentials.new(
@@ -108,7 +108,7 @@ func _build_basic_authorization_header_token() -> String:
 	return Marshalls.utf8_to_base64(client_id+":"+client_secret)
 
 func _build_query_params(params: Dictionary = {}) -> String:
-	var param_array = PoolStringArray()
+	var param_array := PoolStringArray()
 
 	for key in params:
 		param_array.append(str(key) + "=" + str(params[key]))
@@ -124,15 +124,15 @@ func _spotify_request(path: String, http_method: int, body: String = "", retries
 		yield(self.server, "credentials_received")
 		return self._spotify_request(path, http_method, body, retries-1)
 
-	var headers = [
+	var headers := [
 		"Authorization: Bearer " + self.credentials.access_token,
 		"Content-Type: application/json",
 		"Content-Length: " + str(len(body))
 	]
-	var url = SPOTIFY_BASE_URL + path
+	var url := SPOTIFY_BASE_URL + path
 
-	var raw_response = yield(self.simple_request(http_method, url, headers, body), "completed")
-	var response = GopotifyResponse.new(raw_response[1], raw_response[2], raw_response[3])
+	var raw_response: Array = yield(self.simple_request(http_method, url, headers, body), "completed")
+	var response := GopotifyResponse.new(raw_response[1], raw_response[2], raw_response[3])
 	if self.credentials.is_expired() or response.status_code == 401:
 		self.request_user_authorization()
 		yield(self.server, "credentials_received")
@@ -140,8 +140,8 @@ func _spotify_request(path: String, http_method: int, body: String = "", retries
 
 	return response
 
-func simple_request(method: int, url: String, headers: Array = [], body: String = "", params: Dictionary = {}):
-	var query_params = "?" + self._build_query_params(params)
+func simple_request(method: int, url: String, headers: Array = [], body: String = "", params: Dictionary = {}) -> Array:
+	var query_params: String = "" if params.empty() else "?" + self._build_query_params(params)
 
 	self.request(
 		url + query_params,
@@ -158,6 +158,12 @@ func play() -> GopotifyResponse:
 
 func pause() -> GopotifyResponse:
 	return yield(self._spotify_request("me/player/pause", HTTPClient.METHOD_PUT), "completed")
+
+func next() -> GopotifyResponse:
+	return yield(self._spotify_request("me/player/next", HTTPClient.METHOD_POST), "completed")
+
+func previous() -> GopotifyResponse:
+	return yield(self._spotify_request("me/player/previous", HTTPClient.METHOD_POST), "completed")
 
 func get_player_state() -> GopotifyResponse:
 	return yield(self._spotify_request("me/player", HTTPClient.METHOD_GET), "completed")
