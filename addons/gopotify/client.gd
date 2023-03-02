@@ -1,6 +1,8 @@
 extends HTTPRequest
 class_name GopotifyClient
 
+const CREDENTIALS_FILE = "gopotify_credentials.json"
+
 const AUTH_URL := "https://accounts.spotify.com/"
 const SPOTIFY_BASE_URL := "https://api.spotify.com/v1/"
 const SCOPES = [
@@ -8,9 +10,10 @@ const SCOPES = [
 	"user-read-playback-state"
 ]
 
-var client_id: String
-var client_secret: String
-var port: int
+export var client_id := ""
+export var client_secret := ""
+export var port := 8889
+
 var credentials: GopotifyCredentials
 
 var server: GopotifyAuthServer
@@ -31,12 +34,35 @@ class GopotifyResponse:
 	func _to_string():
 		return "[{0}]\n{1}".format([self.status_code, self.body.get_string_from_ascii()])
 
+func _ready() -> void:
+	self.credentials = self.read_credentials()
 
-func _init(_client_id, _client_secret, _port, _credentials) -> void:
-	self.client_id = _client_id
-	self.client_secret = _client_secret
-	self.port = _port
-	self.credentials = _credentials
+func read_credentials() -> GopotifyCredentials:
+	var file = File.new()
+	if file.file_exists("user://" + CREDENTIALS_FILE):
+		file.open("user://" + CREDENTIALS_FILE, File.READ)
+		var parsed = JSON.parse(file.get_as_text())
+		file.close()
+		if not parsed.error:
+			return GopotifyCredentials.new(
+				parsed.result["access_token"],
+				parsed.result["refresh_token"],
+				parsed.result["expires_in"],
+				parsed.result["issued_at"]
+			)
+
+	return null
+
+func write_credentials(credentials: GopotifyCredentials) -> void:
+	var file = File.new()
+	file.open("user://" + CREDENTIALS_FILE, File.WRITE)
+	file.store_string(JSON.print({
+		"access_token": credentials.access_token,
+		"refresh_token": credentials.refresh_token,
+		"expires_in": credentials.expires_in,
+		"issued_at": credentials.issued_at
+	}))
+	file.close()
 
 func _start_auth_server() -> void:
 	self.server = GopotifyAuthServer.new(funcref(self, "request_new_credentials"))
@@ -96,9 +122,7 @@ func request_user_authorization() -> void:
 
 func set_credentials(credentials: GopotifyCredentials) -> void:
 	self.credentials = credentials
-
-	emit_signal("credentials_updated", credentials)
-
+	self.write_credentials(credentials)
 	self._stop_auth_server()
 
 func _get_redirect_uri() -> String:
