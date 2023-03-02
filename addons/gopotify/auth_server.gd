@@ -1,12 +1,12 @@
 extends Node
 class_name GopotifyAuthServer
 
-const AUTH_ENDPOINT = "/callback"
+const AUTH_ENDPOINT: String = "/callback"
 
 var _method_regex: RegEx = RegEx.new()
 var _header_regex: RegEx = RegEx.new()
 
-var client
+var request_new_credentials: FuncRef
 
 var port: int = 8889
 var bind_address: String = "*"
@@ -15,7 +15,7 @@ var _clients: Array
 var _server: TCP_Server
 var timeout_timer: Timer
 
-signal credentials_received(credentials)
+signal credentials_received
 
 
 class GopotifyAuthRequest:
@@ -30,8 +30,8 @@ class GopotifyAuthRequest:
 	func _to_string() -> String:
 		return JSON.print({headers=self.headers, method=self.method, path=self.path, query=self.query})
 
-func _init(_client):
-	self.client = _client
+func _init(_request_new_credentials: FuncRef):
+	self.request_new_credentials = _request_new_credentials
 
 func _ready():
 	set_process(true)
@@ -77,22 +77,19 @@ func _process(_delta: float) -> void:
 				self._handle_request(client, request_string)
 
 func _handle_request(client: StreamPeer, request_string: String):
-	var credentials = null
 	var request = self._build_request_from_string(request_string)
 	var response = GopotifyAuthResponse.new()
 	response.client = client
 	if request.method == "GET" and request.path == AUTH_ENDPOINT:
 		var code = request.query.get("code")
 
-		credentials = yield(self.client.request_new_credentials(code), "completed")
-		if credentials:
+		if yield(self.request_new_credentials.call_func(code), "completed"):
 			response.send(200, "<h1>Todo chido</h1>")
-			self.client.set_credentials(credentials)
 		else:
 			response.send(500, "<h1>algo salió mal</h1>")
 	else:
 		response.send(404, "Not found")
-	emit_signal("credentials_received", credentials)
+	emit_signal("credentials_received")
 
 func _build_request_from_string(request_string: String) -> GopotifyAuthRequest:
 	var request = GopotifyAuthRequest.new()

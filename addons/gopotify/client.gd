@@ -39,7 +39,7 @@ func _init(_client_id, _client_secret, _port, _credentials) -> void:
 	self.credentials = _credentials
 
 func _start_auth_server() -> void:
-	self.server = GopotifyAuthServer.new(self)
+	self.server = GopotifyAuthServer.new(funcref(self, "request_new_credentials"))
 	add_child(self.server)
 
 func _stop_auth_server() -> void:
@@ -62,14 +62,16 @@ func request_new_credentials(code) -> GopotifyCredentials:
 	var result = yield(self.simple_request(HTTPClient.METHOD_POST, url, headers, data), "completed")
 	if result[1] == HTTPClient.RESPONSE_OK:
 		var json_result = JSON.parse(result[3].get_string_from_ascii()).result
-		return GopotifyCredentials.new(
+		var credentials = GopotifyCredentials.new(
 			json_result["access_token"],
 			json_result["refresh_token"],
 			int(json_result["expires_in"]),
 			OS.get_unix_time()
 		)
+		self.set_credentials(credentials)
+		return true
 
-	return null
+	return false
 
 func request_user_authorization() -> void:
 	self._start_auth_server()
@@ -117,6 +119,11 @@ func _spotify_request(path: String, http_method: int, body: String = "", retries
 	if retries < 0:
 		return null
 
+	if not self.credentials:
+		self.request_user_authorization()
+		yield(self.server, "credentials_received")
+		return self._spotify_request(path, http_method, body, retries-1)
+
 	var headers = [
 		"Authorization: Bearer " + self.credentials.access_token,
 		"Content-Type: application/json",
@@ -124,14 +131,8 @@ func _spotify_request(path: String, http_method: int, body: String = "", retries
 	]
 	var url = SPOTIFY_BASE_URL + path
 
-	if not self.credentials:
-		self.request_user_authorization()
-		yield(self.server, "credentials_received")
-		return self._spotify_request(path, http_method, body, retries-1)
-
 	var raw_response = yield(self.simple_request(http_method, url, headers, body), "completed")
 	var response = GopotifyResponse.new(raw_response[1], raw_response[2], raw_response[3])
-	print(response)
 	if self.credentials.is_expired() or response.status_code == 401:
 		self.request_user_authorization()
 		yield(self.server, "credentials_received")
