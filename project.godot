@@ -23,11 +23,17 @@ _global_script_classes=[ {
 "class": "GopotifyClient",
 "language": "GDScript",
 "path": "res://addons/gopotify/client.gd"
+}, {
+"base": "Reference",
+"class": "GopotifyCredentials",
+"language": "GDScript",
+"path": "res://addons/gopotify/credentials.gd"
 } ]
 _global_script_class_icons={
 "GopotifyAuthResponse": "",
 "GopotifyAuthServer": "",
-"GopotifyClient": ""
+"GopotifyClient": "",
+"GopotifyCredentials": ""
 }
 
 [application]
