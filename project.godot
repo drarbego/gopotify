@@ -41,6 +41,11 @@ _global_script_class_icons={
 config/name="SpotifyClientPlugin"
 config/icon="res://icon.png"
 
+[display]
+
+window/size/width=170
+window/size/height=42
+
 [editor_plugins]
 
 enabled=PoolStringArray( "res://addons/gopotify/plugin.cfg" )
