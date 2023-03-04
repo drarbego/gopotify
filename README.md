@@ -24,4 +24,4 @@ After [installing the plugin](https://docs.godotengine.org/en/stable/tutorials/p
 | previous()         | Returns to previous song                                |
 | get_player_state() | Returns an object with the player state as a raw json   |
 
-Thanks to the [godottpd](https://github.com/deep-entertainment/godottpd) for showing how to run an HTTP server in godot
+Check the [godottpd](https://github.com/deep-entertainment/godottpd) project for more on running an http server in godot
