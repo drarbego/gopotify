@@ -13,7 +13,6 @@ var bind_address: String = "*"
 
 var _clients: Array
 var _server: TCP_Server
-var timeout_timer: Timer
 
 signal credentials_received
 
@@ -42,22 +41,12 @@ func _ready():
 	self._server = TCP_Server.new()
 	var err: int = self._server.listen(self.port, self.bind_address)
 
-	self.timeout_timer = Timer.new()
-	self.timeout_timer.wait_time = 5
-	self.timeout_timer.autostart = true
-	self.timeout_timer.one_shot = true
-	add_child(self.timeout_timer)
-	self.timeout_timer.connect("timeout", self, "on_timeout")
-
 	match err:
 		22:
 			print("Could not bind to port %d, already in use" % [self.port])
 			self._server.stop()
 		_:
 			print("Server listening on http://%s:%s" % [self.bind_address, self.port])
-
-func on_timeout():
-	emit_signal("credentials_received", null)
 
 func _exit_tree() -> void:
 	for client in self._clients:
