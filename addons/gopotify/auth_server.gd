@@ -65,7 +65,7 @@ func _process(_delta: float) -> void:
 				var request_string = client.get_string(bytes)
 				self._handle_request(client, request_string)
 
-func _handle_request(client: StreamPeer, request_string: String):
+func _handle_request(client: StreamPeer, request_string: String) -> void:
 	var request = self._build_request_from_string(request_string)
 	var response = GopotifyAuthResponse.new()
 	response.client = client
@@ -73,11 +73,11 @@ func _handle_request(client: StreamPeer, request_string: String):
 		var code = request.query.get("code")
 
 		if yield(self.request_new_credentials.call_func(code), "completed"):
-			response.send(200, "<h1>Todo chido</h1>")
+			response.send(200, "<h1>You may close this window</h1>")
 		else:
-			response.send(500, "<h1>algo salió mal</h1>")
+			response.send(500, "<h1>Something went wrong</h1>")
 	else:
-		response.send(404, "Not found")
+		response.send(404, "<h1>Not found</h1>")
 	emit_signal("credentials_received")
 
 func _build_request_from_string(request_string: String) -> GopotifyAuthRequest:

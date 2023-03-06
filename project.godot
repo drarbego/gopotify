@@ -10,6 +10,11 @@ config_version=4
 
 _global_script_classes=[ {
 "base": "Reference",
+"class": "GopotifyAlbum",
+"language": "GDScript",
+"path": "res://addons/gopotify/data-models/album.gd"
+}, {
+"base": "Reference",
 "class": "GopotifyAuthResponse",
 "language": "GDScript",
 "path": "res://addons/gopotify/auth_response.gd"
@@ -28,12 +33,25 @@ _global_script_classes=[ {
 "class": "GopotifyCredentials",
 "language": "GDScript",
 "path": "res://addons/gopotify/credentials.gd"
+}, {
+"base": "Reference",
+"class": "GopotifyPlayer",
+"language": "GDScript",
+"path": "res://addons/gopotify/data-models/player.gd"
+}, {
+"base": "Reference",
+"class": "GopotifyTrack",
+"language": "GDScript",
+"path": "res://addons/gopotify/data-models/track.gd"
 } ]
 _global_script_class_icons={
+"GopotifyAlbum": "",
 "GopotifyAuthResponse": "",
 "GopotifyAuthServer": "",
 "GopotifyClient": "",
-"GopotifyCredentials": ""
+"GopotifyCredentials": "",
+"GopotifyPlayer": "",
+"GopotifyTrack": ""
 }
 
 [application]
@@ -43,8 +61,8 @@ config/icon="res://icon.png"
 
 [display]
 
-window/size/width=170
-window/size/height=42
+window/size/width=448
+window/size/height=320
 
 [editor_plugins]
 

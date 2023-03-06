@@ -139,12 +139,12 @@ func _build_query_params(params: Dictionary = {}) -> String:
 
 func _spotify_request(path: String, http_method: int, body: String = "", retries: int = 1) -> GopotifyResponse:
 	if retries < 0:
-		return null
+		return GopotifyResponse.new(500, [], [])
 
 	if not self.credentials:
 		self.request_user_authorization()
 		yield(self.server, "credentials_received")
-		return self._spotify_request(path, http_method, body, retries-1)
+		return yield(self._spotify_request(path, http_method, body, retries-1), "completed")
 
 	var headers := [
 		"Authorization: Bearer " + self.credentials.access_token,
@@ -187,5 +187,10 @@ func next() -> GopotifyResponse:
 func previous() -> GopotifyResponse:
 	return yield(self._spotify_request("me/player/previous", HTTPClient.METHOD_POST), "completed")
 
-func get_player_state() -> GopotifyResponse:
-	return yield(self._spotify_request("me/player", HTTPClient.METHOD_GET), "completed")
+func get_player_state() -> GopotifyPlayer:
+	var response = yield(self._spotify_request("me/player", HTTPClient.METHOD_GET), "completed")
+	var parsed_json = JSON.parse(response.body.get_string_from_utf8())
+	if parsed_json.error:
+		return GopotifyPlayer.new(false)
+	var parsed = parsed_json.result
+	return GopotifyPlayer.new(parsed["is_playing"])
