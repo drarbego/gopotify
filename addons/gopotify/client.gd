@@ -175,8 +175,13 @@ func simple_request(method: int, url: String, headers: Array = [], body: String 
 
 	return yield(self, "request_completed")
 
-func play() -> GopotifyResponse:
-	return yield(self._spotify_request("me/player/play", HTTPClient.METHOD_PUT), "completed")
+func play(tracks=[]) -> GopotifyResponse:
+	var body = ""
+	if tracks:
+		var json_body = {"uris": tracks}
+		body = JSON.print(json_body)
+
+	return yield(self._spotify_request("me/player/play", HTTPClient.METHOD_PUT, body), "completed")
 
 func pause() -> GopotifyResponse:
 	return yield(self._spotify_request("me/player/pause", HTTPClient.METHOD_PUT), "completed")
